@@ -10,6 +10,38 @@ class Track_list:
         self.lanzamiento = lanzamiento
         self.publico = publico
 
+    @classmethod
+    def buscar_por_id(cls, id_):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, title, user_id, tracklist_type, release_date, public
+                FROM tracklists
+                WHERE id = %s
+            """, (id_,))
+            r = cur.fetchone()
+            return cls(r[0], r[1], r[2], r[3], r[4], r[5]) if r else None
+        finally:
+            cur.close()
+            conn.close()
+
+    @classmethod
+    def buscar_por_title(cls, title):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, title, user_id, tracklist_type, release_date, public
+                FROM tracklists
+                WHERE title = %s
+            """, (title,))
+            r = cur.fetchone()
+            return cls(r[0], r[1], r[2], r[3], r[4], r[5]) if r else None
+        finally:
+            cur.close()
+            conn.close()
+
     def agregar_track(self, track_id):
         conn = get_conn()
         try:
@@ -112,3 +144,6 @@ class Track_list:
             cur.close()
             conn.close()
 
+'''
+- Falta listar todas las tracklists
+'''

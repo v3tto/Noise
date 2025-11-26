@@ -58,7 +58,6 @@ class Usuario:
             cur.close()
             conn.close()
 
-
     @classmethod
     def buscar_por_id(cls, id_):
         conn = get_conn()
@@ -88,8 +87,57 @@ class Usuario:
 
     def __str__(self):
         return f"{self.nombre} ({self.tipo})"
+    
+    def crear_tracklist(self, titulo):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO tracklists (title, user_id, tracklist_type)
+                VALUES (%s, %s, 'playlist')
+            """, (titulo, self.id))
+            conn.commit()
+            return cur.lastrowid
+        except Exception as e:
+            print("Error al crear playlist:", e)
+            return None
+        finally:
+            cur.close()
+            conn.close()
+    
+    def eliminar_tracklist(self, tracklist_id):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+
+            cur.execute("""
+                SELECT id FROM tracklists 
+                WHERE id = %s AND user_id = %s
+            """, (tracklist_id, self.id))
+            
+            row = cur.fetchone()
+            if not row:
+                print("No tienes permiso para eliminar esta tracklist.")
+                return False
+            
+            cur.execute("""
+                DELETE FROM tracklists WHERE id = %s
+            """, (tracklist_id,))
+            conn.commit()
+
+            print("Tracklist eliminada correctamente.")
+            return True
+
+        except Exception as e:
+            print("Error al eliminar tracklist:", e)
+            return False
+
+        finally:
+            cur.close()
+            conn.close()
 
 '''
 # Falta:
 - agregar a favorites
+- un hijo admin que pueda borrar cualquier tracklist y track
 '''
