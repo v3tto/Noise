@@ -8,6 +8,18 @@ class Track():
         self.artista_id = artista_id
 
     @classmethod
+    def listar_todos(cls):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id, title, duration, artist_id FROM tracks ORDER BY title")
+            rows = cur.fetchall()
+            return [cls(r[0], r[1], r[2], r[3]) for r in rows]
+        finally:
+            cur.close()
+            conn.close()
+
+    @classmethod
     def buscar_por_id(cls, id_):
         conn = get_conn()
         try:

@@ -20,7 +20,7 @@ def test_crear_usuario(clean_db):
     cur.close()
     conn.close()
 
-def test_crear_artista_visual(clean_db):
+def test_crear_artista(clean_db):
     print("=== CREAR ARTISTA ===")
     a = Artista.crear("ArtistaA", "1234", bio="BioA")
     print(f"Artista creado -> id={a.id}, nombre={a.nombre}, bio={a.bio}")

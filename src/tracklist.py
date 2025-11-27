@@ -1,7 +1,6 @@
 from src.db_connection import get_conn
-from src.track import Track
 
-class Track_list:
+class Tracklist:
     def __init__(self, id_, titulo, usuario_id, tipo, lanzamiento, publico=True):
         self.id = id_
         self.titulo = titulo
@@ -9,6 +8,50 @@ class Track_list:
         self.tipo = tipo # "album" o "playlist"
         self.lanzamiento = lanzamiento
         self.publico = publico
+
+    @classmethod
+    def listar_todos(cls):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT id, title, user_id, tracklist_type, release_date, public FROM tracklists ORDER BY title")
+            rows = cur.fetchall()
+            return [cls(r[0], r[1], r[2], r[3], r[4], r[5]) for r in rows]
+        finally:
+            cur.close()
+            conn.close()
+
+    @classmethod
+    def listar_todos_playlists(cls):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, title, user_id, tracklist_type, release_date, public
+                FROM tracklists
+                WHERE tracklist_type = 'playlist'
+                ORDER BY title""")
+            rows = cur.fetchall()
+            return [cls(r[0], r[1], r[2], r[3], r[4], r[5]) for r in rows]
+        finally:
+            cur.close()
+            conn.close()
+
+    @classmethod
+    def listar_todos_albums(cls):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                SELECT id, title, user_id, tracklist_type, release_date, public
+                FROM tracklists
+                WHERE tracklist_type = 'album'
+                ORDER BY title""")
+            rows = cur.fetchall()
+            return [cls(r[0], r[1], r[2], r[3], r[4], r[5]) for r in rows]
+        finally:
+            cur.close()
+            conn.close()
 
     @classmethod
     def buscar_por_id(cls, id_):
