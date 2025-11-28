@@ -2,6 +2,7 @@ import sys
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 
+from src.db_connection import get_conn
 from src.usuario import Usuario
 from src.artista import Artista
 from src.admin import Admin
@@ -94,6 +95,17 @@ def requiere_artista_o_admin(func):
         return func(*args, **kwargs)
     return wrapper
 
+def obtener_username_por_id(user_id):
+    conn = get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT username FROM users WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        cur.close()
+        conn.close()
+
 # MENU
 
 def listar_tracks():
@@ -105,7 +117,11 @@ def listar_tracks():
             return
         lst_output.insert(tk.END, "Canciones:")
         for t in tracks:
-            lst_output.insert(tk.END, f"[{t.id}] {t.titulo} Artista: {t.artista_id} {t.duracion}s")
+            artista = obtener_username_por_id(t.artista_id)
+            lst_output.insert(
+                tk.END,
+                f"[{t.id}] {t.titulo} - {artista} - ({t.duracion}s)"
+            )
     except Exception as e:
         messagebox.showerror("Error", f"Error al listar tracks: \n{e}")
 
@@ -117,7 +133,11 @@ def listar_playlists():
             lst_output.insert(tk.END, "No hay playlists registradas.")
             return
         for p in playlists:
-            lst_output.insert(tk.END, f"[{p.id}] {p.titulo} Usuario: {p.usuario_id} {p.lanzamiento}")
+            usuario = obtener_username_por_id(p.usuario_id)
+            lst_output.insert(
+                tk.END,
+                f"[{p.id}] {p.titulo} - {usuario} - {p.lanzamiento}"
+            )
     except Exception as e:
         messagebox.showerror("Error", f"Error al listar playlists: \n{e}")
 
@@ -126,10 +146,14 @@ def listar_albums():
         albums = Tracklist.listar_todos_albums()
         lst_output.delete(0, tk.END)
         if not albums:
-            lst_output.insert(tk.END, "No hay albums registradas.")
+            lst_output.insert(tk.END, "No hay albums registrados.")
             return
         for a in albums:
-            lst_output.insert(tk.END, f"[{a.id}] {a.titulo} Artista: {a.usuario_id} {a.lanzamiento}")
+            artista = obtener_username_por_id(a.usuario_id)
+            lst_output.insert(
+                tk.END,
+                f"[{a.id}] {a.titulo} - {artista} - {a.lanzamiento}"
+            )
     except Exception as e:
         messagebox.showerror("Error", f"Error al listar albums: \n{e}")
 
@@ -142,7 +166,7 @@ def listar_artistas():
             return
         lst_output.insert(tk.END, "Artistas:")
         for a in artistas:
-            lst_output.insert(tk.END, f"[{a.id}] {a.nombre} Followers: {a.followers}")
+            lst_output.insert(tk.END, f"[{a.id}] {a.nombre} - Followers: {a.followers}")
     except Exception as e:
         messagebox.showerror("Error", f"Error al listar artistas: \n{e}")
 
@@ -167,7 +191,7 @@ def listar_tracks_tracklist():
                 f"{t['position']}. "
                 f"{t['title']} "
                 f"({t['duration']}s) - "
-                f"Artista: {t['artist']}  "
+                f"{t['artist']}  "
                 f"[ID: {t['track_id']}]"
             )
             lst_output.insert(tk.END, linea)
@@ -262,10 +286,83 @@ def eliminar_tracklist():
         listar_playlists()
 
 def agregar_track_tracklist():
-    pass
+    titulo_tracklist = simpledialog.askstring("Agregar track", "Título del álbum/playlist a modificar:")
+    if not titulo_tracklist:
+        return
+    titulo_track = simpledialog.askstring("Agregar track", "Título del track a agregar:")
+    if not titulo_track:
+        return
+    try:
+        tracklist = Tracklist.buscar_por_title(titulo_tracklist)
+        if tracklist is None:
+            messagebox.showerror("Error", "No se encontró la tracklist.")
+            return
+        track = Track.buscar_por_titulo(titulo_track)
+        if track is None:
+            messagebox.showerror("Error", "No se encontró el track.")
+            return
+
+        if tracklist.tipo == "album":
+            if current_user.tipo not in ("artista", "admin"):
+                messagebox.showerror("Permisos", "Solo artistas o admin pueden modificar álbumes.")
+                return
+            if current_user.tipo == "artista" and track.artista_id != current_user.id:
+                messagebox.showerror("Permisos", "Solo el artista dueño puede agregar canciones a su álbum.")
+                return
+
+        if tracklist.agregar_track(track.id):
+            messagebox.showinfo("OK", f"Track agregado correctamente.")
+            lst_output.delete(0, tk.END)
+            lst_output.insert(0, f"Tracklist '{titulo_tracklist}' actualizada:")
+            tracks = Tracklist.listar_tracks(tracklist.id)
+            for t in tracks:
+                lst_output.insert(tk.END, f"{t['position']}. {t['title']} - {t['artist']} ({t['duration']}s) [ID:{t['track_id']}]")
+        else:
+            messagebox.showerror("Error", "No se pudo agregar el track.")
+    except Exception as e:
+        messagebox.showerror("Error",
+            f"Error al agregar track a la tracklist:\n{e}")
 
 def eliminar_track_tracklist():
-    pass
+    titulo_tracklist = simpledialog.askstring("Eliminar track", "Título del álbum/playlist a modificar:")
+    if not titulo_tracklist:
+        return
+    titulo_track = simpledialog.askstring("Eliminar track", "Título del track a eliminar:")
+    if not titulo_track:
+        return
+    try:
+        tracklist = Tracklist.buscar_por_title(titulo_tracklist)
+        if tracklist is None:
+            messagebox.showerror("Error", "No se encontró la tracklist.")
+            return
+        track = Track.buscar_por_titulo(titulo_track)
+        if track is None:
+            messagebox.showerror("Error", "No se encontró el track.")
+            return
+
+        if tracklist.tipo == "album":
+            if current_user.tipo not in ("artista", "admin"):
+                messagebox.showerror("Permisos", "Solo artistas o admin pueden modificar álbumes.")
+                return
+            if current_user.tipo == "artista" and track.artista_id != current_user.id:
+                messagebox.showerror("Permisos", "Solo el artista dueño puede eliminar canciones de su álbum.")
+                return
+
+        if tracklist.eliminar_track(track.id):
+            messagebox.showinfo("OK", f"Track eliminado correctamente.")
+            lst_output.delete(0, tk.END)
+            lst_output.insert(0, f"Tracklist '{titulo_tracklist}' actualizada:")
+            tracks = Tracklist.listar_tracks(tracklist.id)
+            for t in tracks:
+                lst_output.insert(
+                    tk.END,
+                    f"{t['position']}. {t['title']} - {t['artist']} ({t['duration']}s) [ID:{t['track_id']}]"
+                )
+        else:
+            messagebox.showerror("Error", "No se pudo eliminar el track (no existe en la tracklist).")
+    except Exception as e:
+        messagebox.showerror("Error",
+            f"Error al eliminar track de la tracklist:\n{e}")
 
 # AJUSTES SEGUN EL ROL
 
