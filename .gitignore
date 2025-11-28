@@ -16,3 +16,4 @@ __pycache__/
 
 mis_notas.txt
 Noise_db.sql
+fill_db.py

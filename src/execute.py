@@ -386,35 +386,48 @@ def salir():
 
 root = tk.Tk()
 root.title("NOISE")
+root.geometry("900x550")
+root.update_idletasks()
+root.config(bg="#2A2A2A")
 
-# Marco principal
-frame_main = ttk.Frame(root)
+style = ttk.Style()
+style.theme_use("clam")
+
+style.configure("TButton", font=("Segoe UI", 11), padding=6, background="#444", foreground="white")
+style.map("TButton", background=[("active", "#666")])
+style.configure("TLabel", background="#2A2A2A", foreground="white", font=("Segoe UI", 11))
+style.configure("Left.TFrame", background="#1F1F1F")
+style.configure("Right.TFrame", background="#2A2A2A")
+
+frame_main = ttk.Frame(root, style="Right.TFrame")
 frame_main.pack(fill="both", expand=True, padx=10, pady=10)
+frame_main.configure(borderwidth=0)
 
-# Columna izquierda (botones)
-frame_left = ttk.Frame(frame_main)
-frame_left.pack(side="left", fill="y", padx=5)
+frame_left = ttk.Frame(frame_main, style="Left.TFrame")
+frame_left.pack(side="left", fill="y", padx=10, pady=10)
+frame_left.configure(borderwidth=0, relief="flat")
 
-ttk.Button(frame_left, text="Listar tracks", command=listar_tracks).pack(fill="x", pady=3, padx=20)
-ttk.Button(frame_left, text="Listar playlists", command=listar_playlists).pack(fill="x", pady=3, padx=20)
-ttk.Button(frame_left, text="Listar álbumes", command=listar_albums).pack(fill="x", pady=3, padx=20)
-ttk.Button(frame_left, text="Listar artistas", command=listar_artistas).pack(fill="x", pady=3, padx=20)
-ttk.Button(frame_left, text="Listar tracks de tracklists", command=listar_tracks_tracklist).pack(fill="x", pady=3, padx=20)
+ttk.Label(frame_left, text="NOISE", font=("Segoe UI", 14, "bold"), background="#1F1F1F").pack(pady=10)
 
-# Panel derecho (listbox)
-frame_right = ttk.Frame(frame_main)
-frame_right.pack(side="right", fill="both", expand=True)
+button_width = 20
+ttk.Button(frame_left, text="Listar tracks", width=button_width, command=listar_tracks).pack(pady=5)
+ttk.Button(frame_left, text="Listar playlists", width=button_width, command=listar_playlists).pack(pady=5)
+ttk.Button(frame_left, text="Listar álbumes", width=button_width, command=listar_albums).pack(pady=5)
+ttk.Button(frame_left, text="Listar artistas", width=button_width, command=listar_artistas).pack(pady=5)
+ttk.Button(frame_left, text="Listar tracks de tracklists", width=button_width, command=listar_tracks_tracklist).pack(pady=5)
 
-lbl_user = ttk.Label(frame_right, text="No conectado")
-lbl_user.pack(anchor="ne")
+frame_right = ttk.Frame(frame_main, style="Right.TFrame")
+frame_right.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+frame_right.configure(borderwidth=0, relief="flat")
 
-lst_output = tk.Listbox(frame_right, width=60, height=25)
-lst_output.pack(fill="both", expand=True)
+lbl_user = ttk.Label(frame_right, text="No conectado", font=("Segoe UI", 10, "italic"))
+lbl_user.pack(anchor="ne", pady=5)
 
-# Menú superior
-menu_bar = tk.Menu(root)
+lst_output = tk.Listbox(frame_right, width=60, height=22, bg="#1C1C1C", fg="white", selectbackground="#444", bd=0, highlightthickness=1, highlightbackground="#555")
+lst_output.pack(fill="both", expand=True, pady=10)
+
+menu_bar = tk.Menu(root, tearoff=0)
 menu_acciones = tk.Menu(menu_bar, tearoff=0)
-
 menu_acciones.add_command(label="Crear playlist", command=crear_playlist)
 menu_acciones.add_command(label="Crear track", command=crear_track)
 menu_acciones.add_command(label="Crear álbum", command=crear_album)
@@ -428,7 +441,6 @@ menu_acciones.add_command(label="Eliminar tracklist", command=eliminar_tracklist
 menu_bar.add_cascade(label="Acciones", menu=menu_acciones)
 root.config(menu=menu_bar)
 
-# Inicio de login
 root.after(100, login_inicial)
 
 root.mainloop()
