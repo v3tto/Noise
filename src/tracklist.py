@@ -152,7 +152,7 @@ class Tracklist:
             cur.close()
             conn.close()
 
-    def listar_tracks(self):
+    def listar_tracks(id_):
         conn = get_conn()
         try:
             cur = conn.cursor()
@@ -168,7 +168,7 @@ class Tracklist:
                 JOIN users u ON u.id = t.artist_id
                 WHERE tlt.tracklist_id = %s
                 ORDER BY tlt.position ASC
-            """, (self.id,))
+            """, (id_,))
             
             rows = cur.fetchall()
 

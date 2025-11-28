@@ -1,23 +1,25 @@
+from src.usuario import Usuario
 from src.db_connection import get_conn
-from src.usuario import Usuario, hash_password
 
 class Admin(Usuario):
 
     @classmethod
     def crear(cls, nombre, password, tipo="admin"):
+        return super().crear(nombre, password, tipo="admin")
+
+    def crear_track(self, titulo, duracion):
         conn = get_conn()
         try:
             cur = conn.cursor()
-            pwd_hash = hash_password(password)
-
             cur.execute("""
-                INSERT INTO users (username, user_type, password)
+                INSERT INTO tracks (title, duration, artist_id)
                 VALUES (%s, %s, %s)
-            """, (nombre, tipo, pwd_hash))
-
+            """, (titulo, duracion, self.id))
             conn.commit()
-            return cls(cur.lastrowid, nombre, tipo, pwd_hash)
-
+            return cur.lastrowid
+        except Exception as e:
+            print("Admin: error al crear track:", e)
+            return None
         finally:
             cur.close()
             conn.close()
@@ -26,23 +28,29 @@ class Admin(Usuario):
         conn = get_conn()
         try:
             cur = conn.cursor()
-
-            cur.execute("""
-                DELETE FROM tracklist_tracks WHERE track_id = %s
-            """, (track_id,))
-
-            cur.execute("""
-                DELETE FROM tracks WHERE id = %s
-            """, (track_id,))
-
+            cur.execute("DELETE FROM tracks WHERE id = %s", (track_id,))
             conn.commit()
-            print(f"Track {track_id} eliminado por admin.")
-            return True
-
+            return cur.rowcount > 0
         except Exception as e:
-            print("Error al eliminar track:", e)
+            print("Admin: error al eliminar track:", e)
             return False
+        finally:
+            cur.close()
+            conn.close()
 
+    def crear_album(self, titulo):
+        conn = get_conn()
+        try:
+            cur = conn.cursor()
+            cur.execute("""
+                INSERT INTO tracklists (title, user_id, tracklist_type)
+                VALUES (%s, %s, 'album')
+            """, (titulo, self.id))
+            conn.commit()
+            return cur.lastrowid
+        except Exception as e:
+            print("Admin: error al crear album:", e)
+            return None
         finally:
             cur.close()
             conn.close()
@@ -51,23 +59,12 @@ class Admin(Usuario):
         conn = get_conn()
         try:
             cur = conn.cursor()
-
-            cur.execute("""
-                DELETE FROM tracklist_tracks WHERE tracklist_id = %s
-            """, (tracklist_id,))
-
-            cur.execute("""
-                DELETE FROM tracklists WHERE id = %s
-            """, (tracklist_id,))
-
+            cur.execute("DELETE FROM tracklists WHERE id = %s", (tracklist_id,))
             conn.commit()
-            print(f"Tracklist {tracklist_id} eliminada por admin.")
-            return True
-
+            return cur.rowcount > 0
         except Exception as e:
-            print("Error al eliminar tracklist:", e)
+            print("Admin: error al eliminar tracklist:", e)
             return False
-
         finally:
             cur.close()
             conn.close()

@@ -146,36 +146,126 @@ def listar_artistas():
     except Exception as e:
         messagebox.showerror("Error", f"Error al listar artistas: \n{e}")
 
+def listar_tracks_tracklist():
+    titulo = simpledialog.askstring("Tracks de Tracklist", "Título del álbum/playlist:")
+    if not titulo:
+        return
+    try:
+        tracklist = Tracklist.buscar_por_title(titulo)
+        if not tracklist:
+            messagebox.showerror("Error", "No se encontró la tracklist.")
+            return
+        tracks = Tracklist.listar_tracks(tracklist.id)
+        lst_output.delete(0, tk.END)
+        if not tracks:
+            lst_output.insert(tk.END, f"La tracklist '{titulo}' no tiene tracks.")
+            return
+        lst_output.insert(tk.END, f"Tracks de '{titulo}':")
+        lst_output.insert(tk.END, "---------------------------------------")
+        for t in tracks:
+            linea = (
+                f"{t['position']}. "
+                f"{t['title']} "
+                f"({t['duration']}s) - "
+                f"Artista: {t['artist']}  "
+                f"[ID: {t['track_id']}]"
+            )
+            lst_output.insert(tk.END, linea)
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al listar tracks de la tracklist:\n{e}")
+
 # MENU DESPLEGABLE
 
 def crear_playlist():
-    # Disponible para todos
-    # TODO: implementar
-    messagebox.showinfo("Crear playlist", "TODO: implementar crear_playlist()")
-
+    titulo = simpledialog.askstring("Crear playlist", "Título de la playlist:")
+    if not titulo:
+        return
+    try:
+        tracklist_id = current_user.crear_tracklist(titulo)
+        if tracklist_id is None:
+            messagebox.showerror("Error", "No se puedo crear el tracklist (ver consola).")
+            return
+        messagebox.showinfo("OK", f"Playlist creado:\nID: {tracklist_id}\nTítulo: {titulo}")
+        listar_playlists()
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al crear playlist: \n{e}")
 
 @requiere_artista_o_admin
 def crear_track():
-    # TODO: implementar
-    messagebox.showinfo("Crear track", "TODO: implementar crear_track()")
+    titulo = simpledialog.askstring("Crear track", "Título del track:")
+    if not titulo:
+        return
+    dur_str = simpledialog.askstring("Crear track", "Duración en segundos:")
+    if not dur_str:
+        return
+    try:
+        duracion = int(dur_str)
+        if duracion <= 0:
+            raise ValueError
+    except:
+        messagebox.showerror("Error", "La duración debe ser un número entero mayor a 0.")
+        return
 
+    try:
+        track_id = current_user.crear_track(titulo, duracion)
+        if track_id is None:
+            messagebox.showerror("Error", "No se pudo crear el track (ver consola).")
+            return
+        messagebox.showinfo("OK", f"Track creado:\nID: {track_id}\nTítulo: {titulo}")
+        listar_tracks()
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al crear track:\n{e}")
 
 @requiere_artista_o_admin
 def crear_album():
-    # TODO: implementar
-    messagebox.showinfo("Crear álbum", "TODO: implementar crear_album()")
-
+    titulo = simpledialog.askstring("Crear album", "Título del album:")
+    if not titulo:
+        return
+    try:
+        album_id = current_user.crear_album(titulo)
+        if album_id is None:
+            messagebox.showerror("Error", "No se pudo crear el album (ver consola).")
+            return
+        messagebox.showinfo("OK", f"Album creado:\nID: {album_id}\nTítulo: {titulo}")
+        listar_albums()
+    except Exception as e:
+        messagebox.showerror("Error", f"Error al crear album:\n{e}")
 
 @requiere_artista_o_admin
 def eliminar_track():
-    # TODO: implementar
-    messagebox.showinfo("Eliminar track", "TODO: implementar eliminar_track()")
+    titulo = simpledialog.askstring("Eliminar track", "Título del track a eliminar:")
+    if not titulo:
+        return
+    track = Track.buscar_por_titulo(titulo)
+    if track is None:
+        messagebox.showwarning("No encontrado", "Track no encontrado.")
+        return
+    if messagebox.askyesno("Confirmar", f"Eliminar el track '{track.titulo} {track.artista_id}'?"):
+        if current_user.eliminar_track(track.id):
+            messagebox.showinfo("OK", f"Track eliminado")
+    listar_tracks()
 
-
-@requiere_artista_o_admin
 def eliminar_tracklist():
-    # TODO: implementar
-    messagebox.showinfo("Eliminar tracklist", "TODO: implementar eliminar_tracklist()")
+    titulo = simpledialog.askstring("Eliminar tracklist", "Título del tracklist a eliminar:")
+    if not titulo:
+        return
+    tracklist = Tracklist.buscar_por_title(titulo)
+    if tracklist is None:
+        messagebox.showwarning("No encontrado", "Tracklist no encontrado.")
+        return
+    if messagebox.askyesno("Confirmar", f"Eliminar tracklist '{tracklist.titulo} {tracklist.usuario_id}'?"):
+        if current_user.eliminar_tracklist(tracklist.id):
+            messagebox.showinfo("OK", f"Tracklist eliminado")
+    if tracklist.tipo == 'album':
+        listar_albums()
+    else:
+        listar_playlists()
+
+def agregar_track_tracklist():
+    pass
+
+def eliminar_track_tracklist():
+    pass
 
 # AJUSTES SEGUN EL ROL
 
@@ -184,10 +274,10 @@ def ajustar_menu_por_rol():
     menu_acciones.entryconfig("Crear track", state="normal" if tipo in ("artista", "admin") else "disabled")
     menu_acciones.entryconfig("Crear álbum", state="normal" if tipo in ("artista", "admin") else "disabled")
     menu_acciones.entryconfig("Eliminar track", state="normal" if tipo in ("artista", "admin") else "disabled")
-    menu_acciones.entryconfig("Eliminar tracklist", state="normal" if tipo in ("artista", "admin") else "disabled")
 
     # Crear playlist siempre está habilitado
     menu_acciones.entryconfig("Crear playlist", state="normal")
+    menu_acciones.entryconfig("Eliminar tracklist", state="normal")
 
 # CERRAR APP
 
@@ -198,7 +288,7 @@ def salir():
 # INTERFAZ
 
 root = tk.Tk()
-root.title("Sistema de Música")
+root.title("NOISE")
 
 # Marco principal
 frame_main = ttk.Frame(root)
@@ -208,10 +298,11 @@ frame_main.pack(fill="both", expand=True, padx=10, pady=10)
 frame_left = ttk.Frame(frame_main)
 frame_left.pack(side="left", fill="y", padx=5)
 
-ttk.Button(frame_left, text="Listar tracks", command=listar_tracks).pack(fill="x", pady=3)
-ttk.Button(frame_left, text="Listar playlists", command=listar_playlists).pack(fill="x", pady=3)
-ttk.Button(frame_left, text="Listar álbumes", command=listar_albums).pack(fill="x", pady=3)
-ttk.Button(frame_left, text="Listar artistas", command=listar_artistas).pack(fill="x", pady=3)
+ttk.Button(frame_left, text="Listar tracks", command=listar_tracks).pack(fill="x", pady=3, padx=20)
+ttk.Button(frame_left, text="Listar playlists", command=listar_playlists).pack(fill="x", pady=3, padx=20)
+ttk.Button(frame_left, text="Listar álbumes", command=listar_albums).pack(fill="x", pady=3, padx=20)
+ttk.Button(frame_left, text="Listar artistas", command=listar_artistas).pack(fill="x", pady=3, padx=20)
+ttk.Button(frame_left, text="Listar tracks de tracklists", command=listar_tracks_tracklist).pack(fill="x", pady=3, padx=20)
 
 # Panel derecho (listbox)
 frame_right = ttk.Frame(frame_main)
@@ -230,6 +321,9 @@ menu_acciones = tk.Menu(menu_bar, tearoff=0)
 menu_acciones.add_command(label="Crear playlist", command=crear_playlist)
 menu_acciones.add_command(label="Crear track", command=crear_track)
 menu_acciones.add_command(label="Crear álbum", command=crear_album)
+menu_acciones.add_separator()
+menu_acciones.add_command(label="Agregar track a tracklist", command=agregar_track_tracklist)
+menu_acciones.add_command(label="Eliminar track de tracklist", command=eliminar_track_tracklist)
 menu_acciones.add_separator()
 menu_acciones.add_command(label="Eliminar track", command=eliminar_track)
 menu_acciones.add_command(label="Eliminar tracklist", command=eliminar_tracklist)

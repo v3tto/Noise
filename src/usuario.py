@@ -32,15 +32,38 @@ class Usuario:
         conn = get_conn()
         try:
             cur = conn.cursor()
-            cur.execute(
-                "SELECT id, username, user_type, password FROM users WHERE username = %s",
-                (nombre,)
-            )
+            cur.execute("""
+                SELECT id, username, user_type, password
+                FROM users
+                WHERE username = %s
+            """, (nombre,))
+            
             r = cur.fetchone()
             if not r:
                 return None
-            if hash_password(password) == r[3]:
-                return cls(r[0], r[1], r[2], r[3])
+
+            stored_hash = r[3]
+            if hash_password(password) != stored_hash:
+                return None
+
+            user_id, username, tipo, _ = r
+
+            # Para evitar import circular
+            from src.artista import Artista
+            from src.admin import Admin
+            # esta puede ser la peor funcion que he programado
+            # pero funciona
+
+            if tipo == "usuario":
+                return Usuario(user_id, username, tipo, stored_hash)
+            elif tipo == "artista":
+                cur.execute("SELECT bio, followers FROM artists WHERE id=%s", (user_id,))
+                a = cur.fetchone()
+                bio = a[0] if a else ""
+                followers = a[1] if a else 0
+                return Artista(user_id, username, tipo, stored_hash, bio, followers)
+            elif tipo == "admin":
+                return Admin(user_id, username, tipo, stored_hash)
             return None
         finally:
             cur.close()

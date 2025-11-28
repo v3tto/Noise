@@ -104,10 +104,8 @@ class Artista(Usuario):
             cur = conn.cursor()
 
             cur.execute("""
-                SELECT t.id 
-                FROM tracks t
-                INNER JOIN tracklists tl ON t.tracklist_id = tl.id
-                WHERE t.id = %s AND tl.user_id = %s AND tl.tracklist_type = 'album'
+                SELECT id FROM tracks 
+                WHERE id = %s AND artist_id = %s
             """, (track_id, self.id))
             
             row = cur.fetchone()
